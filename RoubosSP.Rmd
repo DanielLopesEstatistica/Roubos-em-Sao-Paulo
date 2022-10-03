@@ -1,0 +1,50 @@
+---
+title: "Untitled"
+author: "Daniel Lopes"
+date: '2022-09-16'
+output: html_document
+---
+
+```{r}
+archive <- file.path("C:/R/BO_2016.csv", "BO_2016.csv")
+```
+
+```{r}
+library(readr)
+
+BOS <- read_csv(archive)
+```
+
+```{r}
+library(tidyverse)
+library(stringr)
+
+BOSroubos <- BOS %>% 
+  filter(str_detect(RUBRICA, "Homicídio")) %>% 
+  select(c(NUM_BO, LOGRADOURO, LATITUDE, LONGITUDE, RUBRICA)) %>% 
+  group_by(LOGRADOURO) %>% 
+  select(!(NUM_BO))
+
+RoubosEndereco <- BOSroubos %>% summarise(TOTAL = n())
+
+RoubosGraph <- full_join(BOSroubos, RoubosEndereco, by = "LOGRADOURO") %>% distinct(LOGRADOURO, .keep_all = TRUE) %>% drop_na()
+```
+
+```{r}
+library(leaflet)
+
+RoubosGraph$LATITUDE <- RoubosGraph$LATITUDE %>% as.character() %>% as.numeric()
+
+RoubosGraph$LONGITUDE <- RoubosGraph$LONGITUDE %>% as.character() %>% as.numeric()
+
+leaflet(data = RoubosGraph) %>% 
+  addTiles() %>% 
+  addCircleMarkers(lng = ~LONGITUDE,
+                   lat = ~LATITUDE, 
+                   color = "red",
+                   clusterOptions = TRUE,
+                   radius = ~TOTAL,
+                   popup = ~paste(LOGRADOURO))
+
+```
+
